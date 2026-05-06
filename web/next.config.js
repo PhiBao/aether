@@ -8,6 +8,11 @@ const nextConfig = {
       net: false,
       tls: false,
     };
+    config.externals = [
+      ...(config.externals || []),
+      { "@react-native-async-storage/async-storage": "commonjs @react-native-async-storage/async-storage" },
+      { "pino-pretty": "commonjs pino-pretty" },
+    ];
     return config;
   },
 };

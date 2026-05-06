@@ -4,9 +4,8 @@ import { fetchSentiment } from "@/lib/dex/elfa-adapter";
 import { runSwarm } from "@/lib/engine/signals";
 import { Candle } from "@/lib/engine/indicators";
 
-// In-memory cache for signals (public terminal — no auth needed)
 const signalCache: Record<string, { signal: any; timestamp: number }> = {};
-const CACHE_TTL = 60000; // 1 minute
+const CACHE_TTL = 60000;
 
 async function analyzeSymbol(symbol: string) {
   const cached = signalCache[symbol];
@@ -19,6 +18,10 @@ async function analyzeSymbol(symbol: string) {
     fetchFundingRate(symbol),
     fetchSentiment(symbol),
   ]);
+
+  if (!klines || klines.length < 20) {
+    throw new Error(`Insufficient kline data for ${symbol}: got ${klines?.length || 0} candles`);
+  }
 
   const candles: Candle[] = klines.map((k) => ({
     timestamp: k.timestamp,
@@ -58,16 +61,28 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, signal });
     }
 
-    // Batch analyze all popular pairs
-    const signals = await Promise.all(
-      POPULAR_PAIRS.map((s) => analyzeSymbol(s).catch(() => null))
+    const results = await Promise.allSettled(
+      POPULAR_PAIRS.map((s) => analyzeSymbol(s))
     );
 
-    const valid = signals.filter(Boolean);
-    // Sort by absolute strength
-    valid.sort((a, b) => Math.abs(b.strength) - Math.abs(a.strength));
+    const signals: any[] = [];
+    const errors: string[] = [];
 
-    return NextResponse.json({ success: true, signals: valid });
+    results.forEach((r, i) => {
+      if (r.status === "fulfilled" && r.value) {
+        signals.push(r.value);
+      } else if (r.status === "rejected") {
+        errors.push(`${POPULAR_PAIRS[i]}: ${r.reason?.message || r.reason}`);
+      }
+    });
+
+    signals.sort((a, b) => Math.abs(b.strength) - Math.abs(a.strength));
+
+    return NextResponse.json({
+      success: true,
+      signals,
+      ...(errors.length > 0 && { errors }),
+    });
   } catch (err: any) {
     console.error("[API /bot/cycle]", err);
     return NextResponse.json(
