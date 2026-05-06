@@ -6,8 +6,12 @@ import { Providers } from "./providers";
 const jetbrains = JetBrains_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AETHER MANTLE - AI SIGNAL TERMINAL",
+  title: "AETHER - AI SIGNAL TERMINAL",
   description: "Gamified AI trading signal terminal on Mantle Network. 6-strategy swarm consensus with Bybit data and Elfa sentiment.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

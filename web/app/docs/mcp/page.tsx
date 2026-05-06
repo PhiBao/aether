@@ -194,9 +194,9 @@ export default function MCPDocsPage() {
         <section className="border border-gray-800 bg-panelBg p-6">
           <h2 className="text-cyan text-sm font-bold mb-4">[ CONNECTION ]</h2>
           <div className="text-xs text-gray-500 space-y-1">
-            <div>AETHER_API_URL: Set via environment variable (default: http://localhost:3000)</div>
+            <div>AETHER_API_URL: https://aether-swarm-blush.vercel.app</div>
             <div>Network: Mantle Sepolia (Chain ID: 5003)</div>
-            <div>RPC: https://mantle-sepolia.g.alchemy.com/v2/...</div>
+            <div>RPC: https://rpc.sepolia.mantle.xyz</div>
           </div>
         </section>
       </div>
