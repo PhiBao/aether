@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Environment
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+nohup.out
+
+# Remotion video project (generated assets)
+remotion/
+
+# Contracts build artifacts
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+contracts/lib/
+
+# Misc
+*.mp4
+*.mov
+*.wav
+*.mp3

@@ -1,0 +1,116 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/anthropic-cookbook/main/mcp/schema.json",
+  "name": "aether-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for AETHER AI Signal Terminal — exposes market data, sentiment, and signal generation tools",
+  "transport": {
+    "type": "stdio"
+  },
+  "tools": [
+    {
+      "name": "fetch_signal",
+      "description": "Fetch the current AI swarm signal for a cryptocurrency symbol",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Trading pair symbol, e.g. BTCUSDT, ETHUSDT"
+          }
+        },
+        "required": ["symbol"]
+      }
+    },
+    {
+      "name": "fetch_all_signals",
+      "description": "Fetch all active signals across all tracked pairs",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "fetch_sentiment",
+      "description": "Fetch Elfa social sentiment for a symbol",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Trading pair symbol"
+          }
+        },
+        "required": ["symbol"]
+      }
+    },
+    {
+      "name": "fetch_klines",
+      "description": "Fetch Bybit kline/candlestick data for a symbol",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Trading pair symbol"
+          },
+          "interval": {
+            "type": "string",
+            "description": "Candle interval: 1, 5, 15, 60, 240, D",
+            "default": "60"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Number of candles to fetch",
+            "default": 100
+          }
+        },
+        "required": ["symbol"]
+      }
+    },
+    {
+      "name": "vote_signal",
+      "description": "Cast a bull or bear vote on a signal",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["bull", "bear"]
+          }
+        },
+        "required": ["symbol", "direction"]
+      }
+    },
+    {
+      "name": "fetch_leaderboard",
+      "description": "Get the current crowd sentiment leaderboard",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "docs://architecture",
+      "name": "AETHER Architecture",
+      "description": "High-level system architecture and data flow",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "docs://contracts",
+      "name": "Smart Contract Addresses",
+      "description": "Deployed contract addresses on Mantle Sepolia",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "docs://api",
+      "name": "API Reference",
+      "description": "Internal API route documentation",
+      "mimeType": "text/markdown"
+    }
+  ]
+}
