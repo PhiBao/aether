@@ -40,46 +40,46 @@ AETHER is a **signal intelligence terminal** — a tool for traders who want dat
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         DATA SOURCES                                │
 ├─────────────────────────────────────────────────────────────────────┤
-│  Bybit V5 API          │  Elfa AI API         │  Mantle RPC        │
-│  • Klines (OHLCV)      │  • Social sentiment  │  • Block data      │
-│  • Funding rates        │  • Mention counts    │  • Contract calls  │
-│  • Ticker prices       │  • Bull/bear ratio   │  • Transaction logs│
-└────────────────────────┴──────────────────────┴────────────────────┘
+│  Bybit V5 API          │  Elfa AI API         │  Mantle RPC         │
+│  • Klines (OHLCV)      │  • Social sentiment  │  • Block data       │
+│  • Funding rates       │  • Mention counts    │  • Contract calls   │
+│  • Ticker prices       │  • Bull/bear ratio   │  • Transaction logs │
+└────────────────────────┴──────────────────────┴─────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        SWARM ENGINE                                  │
+│                        SWARM ENGINE                                 │
 ├─────────────────────────────────────────────────────────────────────┤
 │  6 Independent Strategy Agents running in parallel:                 │
-│                                                                         │
-│  1. TREND_HUNTER_01    │ EMA crosses, trend alignment              │
-│  2. MEAN_REVERT_02     │ Bollinger band reversions                 │
-│  3. MOMENTUM_BOT_03    │ MACD/RSI momentum shifts                    │
+│                                                                     │
+│  1. TREND_HUNTER_01    │ EMA crosses, trend alignment               │
+│  2. MEAN_REVERT_02     │ Bollinger band reversions                  │
+│  3. MOMENTUM_BOT_03    │ MACD/RSI momentum shifts                   │
 │  4. SR_BOUNCE_04       │ Support/resistance bounce                  │
 │  5. VOLUME_SNIFFER_05  │ Volume spike breakouts                     │
 │  6. SENTIMENT_ORACLE_06│ Elfa sentiment + funding rate bias         │
-│                                                                         │
-│  Each agent votes: BUY (-1 to 1) with confidence (0-100%)            │
-│  Final signal = weighted average of all 6 votes                       │
+│                                                                     │
+│  Each agent votes: BUY (-1 to 1) with confidence (0-100%)           │
+│  Final signal = weighted average of all 6 votes                     │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        OUTPUT LAYER                                  │
+│                        OUTPUT LAYER                                 │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Signal Object:                                                     │
-│  {                                                                 │
-│    symbol: "BTCUSDT",                                             │
-│    direction: "LONG",           // Consensus direction               │
-│    confidence: 0.78,           // Weighted confidence 0-100%       │
-│    strength: 0.65,            // Signal strength 0-100%            │
-│    vibeScore: 0.42,            // Crowd vs AI alignment            │
-│    votes: [...6 strategies],  // Individual agent votes            │
-│    meta: {                    // Context                           │
-│      sentimentScore: 0.35,     // Elfa score -1 to 1               │
-│      fundingRate: 0.0001,      // Bybit funding rate               │
-│      mentionCount: 4523        // Social mentions                  │
-│    }                                                                  │
+│  {                                                                  │
+│    symbol: "BTCUSDT",                                               │
+│    direction: "LONG",           // Consensus direction              │
+│    confidence: 0.78,           // Weighted confidence 0-100%        │
+│    strength: 0.65,            // Signal strength 0-100%             │
+│    vibeScore: 0.42,            // Crowd vs AI alignment             │
+│    votes: [...6 strategies],  // Individual agent votes             │
+│    meta: {                    // Context                            │
+│      sentimentScore: 0.35,     // Elfa score -1 to 1                │
+│      fundingRate: 0.0001,      // Bybit funding rate                │
+│      mentionCount: 4523        // Social mentions                   │
+│    }                                                                │
 │  }                                                                  │
 └─────────────────────────────────────────────────────────────────────┘
 ```
