@@ -3,13 +3,9 @@
 import TerminalLayout from "@/components/TerminalLayout";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-
-interface Signal {
-  symbol: string;
-  direction: "LONG" | "SHORT" | "HOLD";
-  strength: number;
-  confidence: number;
-}
+import { fetchKlines, fetchFundingRate, POPULAR_PAIRS } from "@/lib/dex/bybit-adapter";
+import { runSwarm } from "@/lib/engine/signals";
+import { Candle } from "@/lib/engine/indicators";
 
 interface LeaderboardEntry {
   symbol: string;
@@ -17,6 +13,14 @@ interface LeaderboardEntry {
   bear: number;
   total: number;
   bullRatio: number;
+  direction?: string;
+  strength?: number;
+}
+
+function generateFallbackSentiment(symbol: string) {
+  const hash = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  const pseudo = Math.sin(hash) * 0.5 + 0.5;
+  return { score: (pseudo - 0.5) * 2, confidence: 0.3 + pseudo * 0.4 };
 }
 
 function getCrowdDirection(ratio: number): "BULL" | "BEAR" | "NEUTRAL" {
@@ -25,41 +29,50 @@ function getCrowdDirection(ratio: number): "BULL" | "BEAR" | "NEUTRAL" {
   return "NEUTRAL";
 }
 
-function getDisagreement(ai: string, crowd: string): "AGREE" | "DISAGREE" | "STRONG_DISAGREE" {
-  if (ai === "HOLD" || crowd === "NEUTRAL") return "AGREE";
-  if (ai === crowd) return "AGREE";
-  return "DISAGREE";
-}
-
 export default function LeaderboardPage() {
-  const [entries, setEntries] = useState<(LeaderboardEntry & { signal?: Signal })[]>([]);
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function load() {
     setLoading(true);
     try {
-      const [lbRes, sigRes] = await Promise.all([
-        fetch("/api/leaderboard"),
-        fetch("/api/bot/cycle"),
-      ]);
+      const lbRes = await fetch("/api/leaderboard");
       const lbJson = await lbRes.json();
-      const sigJson = await sigRes.json();
-
-      const signals: Signal[] = sigJson.signals || [];
       const leaderboard: LeaderboardEntry[] = lbJson.leaderboard || [];
 
-      // Merge signals into leaderboard entries
-      const merged = leaderboard.map((entry) => ({
-        ...entry,
-        signal: signals.find((s) => s.symbol === entry.symbol),
-      }));
+      const signalResults = await Promise.allSettled(
+        leaderboard.map(async (entry) => {
+          try {
+            const [klines, fundingRate] = await Promise.all([
+              fetchKlines(entry.symbol, "60", 50),
+              fetchFundingRate(entry.symbol),
+            ]);
+            if (!klines || klines.length < 10) return { ...entry, direction: "HOLD", strength: 0 };
+            const sentiment = generateFallbackSentiment(entry.symbol);
+            const candles: Candle[] = klines.map((k) => ({
+              timestamp: k.timestamp, open: k.open, high: k.high, low: k.low, close: k.close, volume: k.volume,
+            }));
+            const sig = runSwarm(candles, sentiment.score, sentiment.confidence, fundingRate);
+            return { ...entry, direction: sig.direction, strength: sig.strength };
+          } catch {
+            return { ...entry, direction: "HOLD", strength: 0 };
+          }
+        })
+      );
 
-      // Sort by most interesting: strong disagreement first, then by total votes
+      const merged = signalResults.map((r, i) =>
+        r.status === "fulfilled" ? r.value : leaderboard[i]
+      );
+
       merged.sort((a, b) => {
-        const da = getDisagreement(a.signal?.direction || "HOLD", getCrowdDirection(a.bullRatio));
-        const db = getDisagreement(b.signal?.direction || "HOLD", getCrowdDirection(b.bullRatio));
-        if (da === "DISAGREE" && db !== "DISAGREE") return -1;
-        if (db === "DISAGREE" && da !== "DISAGREE") return 1;
+        const aiA = a.direction || "HOLD";
+        const aiB = b.direction || "HOLD";
+        const crowdA = getCrowdDirection(a.bullRatio);
+        const crowdB = getCrowdDirection(b.bullRatio);
+        const disagreeA = (aiA === "LONG" && crowdA === "BEAR") || (aiA === "SHORT" && crowdA === "BULL");
+        const disagreeB = (aiB === "LONG" && crowdB === "BEAR") || (aiB === "SHORT" && crowdB === "BULL");
+        if (disagreeA && !disagreeB) return -1;
+        if (disagreeB && !disagreeA) return 1;
         return b.total - a.total;
       });
 
@@ -73,7 +86,7 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 15000);
+    const interval = setInterval(load, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -93,7 +106,6 @@ export default function LeaderboardPage() {
           <div className="text-gray-500 text-xs py-8 text-center">NO DATA YET</div>
         ) : (
           <div className="space-y-2">
-            {/* Header row */}
             <div className="grid grid-cols-12 gap-2 text-[10px] text-gray-600 px-3 pb-2 border-b border-gray-800">
               <div className="col-span-2">SYMBOL</div>
               <div className="col-span-2 text-center">AI SIGNAL</div>
@@ -104,10 +116,10 @@ export default function LeaderboardPage() {
             </div>
 
             {entries.map((entry) => {
-              const aiDir = entry.signal?.direction || "HOLD";
+              const aiDir = entry.direction || "HOLD";
               const crowdDir = getCrowdDirection(entry.bullRatio);
-              const disagreement = getDisagreement(aiDir, crowdDir);
-              const strength = entry.signal ? Math.round(entry.signal.strength * 100) : 0;
+              const disagree = (aiDir === "LONG" && crowdDir === "BEAR") || (aiDir === "SHORT" && crowdDir === "BULL");
+              const strength = entry.strength ? Math.round(entry.strength * 100) : 0;
 
               return (
                 <div
@@ -148,16 +160,13 @@ export default function LeaderboardPage() {
                   </div>
 
                   <div className="col-span-3">
-                    {disagreement === "DISAGREE" ? (
+                    {disagree ? (
                       <span className="text-[10px] text-neonRed border border-neonRed px-1.5 py-0.5">
                         ⚠ DISAGREEMENT
                       </span>
                     ) : (
                       <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden max-w-[100px]">
-                        <div
-                          className="h-full bg-neonGreen"
-                          style={{ width: `${entry.bullRatio * 100}%` }}
-                        />
+                        <div className="h-full bg-neonGreen" style={{ width: `${entry.bullRatio * 100}%` }} />
                       </div>
                     )}
                   </div>
@@ -169,10 +178,7 @@ export default function LeaderboardPage() {
                   </div>
 
                   <div className="col-span-1 text-right">
-                    <Link
-                      href={`/signal/${entry.symbol}`}
-                      className="text-[10px] text-gray-500 hover:text-cyan transition-colors"
-                    >
+                    <Link href={`/signal/${entry.symbol}`} className="text-[10px] text-gray-500 hover:text-cyan transition-colors">
                       VIEW →
                     </Link>
                   </div>

@@ -1,6 +1,3 @@
-// Bybit Market Data Adapter
-// Public V5 API — no auth required for klines
-
 export interface BybitCandle {
   timestamp: number;
   open: number;
@@ -13,40 +10,17 @@ export interface BybitCandle {
 
 const BYBIT_BASE = "https://api.bybit.com";
 
-const HEADERS = {
-  "User-Agent": "AETHER/1.0 (https://aether-swarm-blush.vercel.app)",
-  "Accept": "application/json",
-};
-
-async function bybitFetch(path: string, params: Record<string, string>) {
-  const url = new URL(path, BYBIT_BASE);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-
-  const res = await fetch(url.toString(), { headers: HEADERS });
-  if (!res.ok) {
-    throw new Error(`Bybit API error: ${res.status} ${res.statusText}`);
-  }
-
-  const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error(`Bybit returned non-JSON: ${text.slice(0, 100)}`);
-  }
-}
-
 export async function fetchKlines(
   symbol: string,
   interval: string = "60",
   limit: number = 200
 ): Promise<BybitCandle[]> {
-  const json = await bybitFetch("/v5/market/kline", {
-    category: "linear",
-    symbol,
-    interval,
-    limit: String(limit),
-  });
+  const url = `${BYBIT_BASE}/v5/market/kline?category=linear&symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Bybit API error: ${res.status}`);
+
+  const json = await res.json();
   if (json.retCode !== 0) throw new Error(`Bybit error: ${json.retMsg}`);
 
   return (json.result?.list || []).map((c: string[]) => ({
@@ -61,11 +35,12 @@ export async function fetchKlines(
 }
 
 export async function fetchFundingRate(symbol: string): Promise<number> {
-  const json = await bybitFetch("/v5/market/tickers", {
-    category: "linear",
-    symbol,
-  });
+  const url = `${BYBIT_BASE}/v5/market/tickers?category=linear&symbol=${symbol}`;
 
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Bybit API error: ${res.status}`);
+
+  const json = await res.json();
   if (json.retCode !== 0) throw new Error(`Bybit error: ${json.retMsg}`);
 
   const ticker = json.result?.list?.[0];

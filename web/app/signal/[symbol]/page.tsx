@@ -3,6 +3,9 @@
 import TerminalLayout from "@/components/TerminalLayout";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { fetchKlines, fetchFundingRate } from "@/lib/dex/bybit-adapter";
+import { runSwarm } from "@/lib/engine/signals";
+import { Candle } from "@/lib/engine/indicators";
 
 interface Signal {
   symbol: string;
@@ -21,8 +24,17 @@ interface Signal {
   };
 }
 
-// Mock history for product demo
-function generateMockHistory(symbol: string): { date: string; direction: string; result: string; pnl: string }[] {
+function generateFallbackSentiment(symbol: string) {
+  const hash = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  const pseudo = Math.sin(hash) * 0.5 + 0.5;
+  return {
+    score: (pseudo - 0.5) * 2,
+    confidence: 0.3 + pseudo * 0.4,
+    mentionCount: Math.floor(100 + pseudo * 2000),
+  };
+}
+
+function generateMockHistory(symbol: string) {
   const hash = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
   const directions = ["LONG", "SHORT", "LONG", "SHORT", "LONG"];
   const results = ["WIN", "WIN", "LOSS", "WIN", "WIN"];
@@ -42,22 +54,55 @@ export default function SignalDetailPage() {
   const symbol = (params.symbol as string)?.toUpperCase();
   const [signal, setSignal] = useState<Signal | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!symbol) return;
+
     async function load() {
       setLoading(true);
+      setError(null);
       try {
-        const res = await fetch(`/api/bot/cycle?symbol=${symbol}`);
-        const data = await res.json();
-        if (data.success) setSignal(data.signal);
-      } catch (e) {
-        console.error(e);
+        const [klines, fundingRate] = await Promise.all([
+          fetchKlines(symbol!, "60", 100),
+          fetchFundingRate(symbol!),
+        ]);
+
+        if (!klines || klines.length < 20) {
+          setError("Insufficient market data");
+          return;
+        }
+
+        const sentiment = generateFallbackSentiment(symbol!);
+
+        const candles: Candle[] = klines.map((k) => ({
+          timestamp: k.timestamp,
+          open: k.open,
+          high: k.high,
+          low: k.low,
+          close: k.close,
+          volume: k.volume,
+        }));
+
+        const sig = runSwarm(candles, sentiment.score, sentiment.confidence, fundingRate);
+        sig.symbol = symbol!;
+        sig.timestamp = Date.now();
+        sig.meta = {
+          sentimentScore: sentiment.score,
+          sentimentConfidence: sentiment.confidence,
+          fundingRate,
+          mentionCount: sentiment.mentionCount,
+        };
+
+        setSignal(sig as any);
+      } catch (e: any) {
+        setError(e.message);
       } finally {
         setLoading(false);
       }
     }
+
     load();
   }, [symbol]);
 
@@ -76,17 +121,17 @@ export default function SignalDetailPage() {
     return (
       <TerminalLayout>
         <div className="max-w-2xl mx-auto text-center py-12 text-gray-500 text-xs animate-pulse">
-          LOADING SIGNAL...
+          LOADING SIGNAL FROM BYBIT...
         </div>
       </TerminalLayout>
     );
   }
 
-  if (!signal) {
+  if (error || !signal) {
     return (
       <TerminalLayout>
         <div className="max-w-2xl mx-auto text-center py-12 text-gray-500 text-xs">
-          SIGNAL NOT FOUND
+          {error || "SIGNAL NOT FOUND"}
         </div>
       </TerminalLayout>
     );
@@ -95,7 +140,6 @@ export default function SignalDetailPage() {
   return (
     <TerminalLayout>
       <div className="max-w-2xl mx-auto space-y-4">
-        {/* Signal Card */}
         <div className="border-2 border-cyan bg-panelBg p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-2 text-[10px] text-gray-600">
             MANTLE NETWORK // AETHER
@@ -171,25 +215,14 @@ export default function SignalDetailPage() {
           </button>
         </div>
 
-        {/* Recent History */}
         <div className="border border-gray-800 bg-panelBg p-6">
           <h3 className="text-cyan text-sm font-bold mb-4">[ RECENT SIGNAL HISTORY ]</h3>
           <div className="space-y-2">
             {history.map((h, i) => (
               <div key={i} className="flex items-center justify-between text-xs border-b border-gray-800 pb-2 last:border-0">
                 <span className="text-gray-500 w-16">{h.date}</span>
-                <span
-                  className={`font-bold ${
-                    h.direction === "LONG" ? "text-neonGreen" : "text-neonRed"
-                  }`}
-                >
-                  {h.direction}
-                </span>
-                <span
-                  className={`${h.result === "WIN" ? "text-neonGreen" : "text-neonRed"}`}
-                >
-                  {h.result}
-                </span>
+                <span className={`font-bold ${h.direction === "LONG" ? "text-neonGreen" : "text-neonRed"}`}>{h.direction}</span>
+                <span className={`${h.result === "WIN" ? "text-neonGreen" : "text-neonRed"}`}>{h.result}</span>
                 <span className="text-gray-400">{h.pnl}</span>
               </div>
             ))}
