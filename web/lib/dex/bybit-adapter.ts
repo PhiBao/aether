@@ -13,24 +13,42 @@ export interface BybitCandle {
 
 const BYBIT_BASE = "https://api.bybit.com";
 
+const HEADERS = {
+  "User-Agent": "AETHER/1.0 (https://aether-swarm-blush.vercel.app)",
+  "Accept": "application/json",
+};
+
+async function bybitFetch(path: string, params: Record<string, string>) {
+  const url = new URL(path, BYBIT_BASE);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+  const res = await fetch(url.toString(), { headers: HEADERS });
+  if (!res.ok) {
+    throw new Error(`Bybit API error: ${res.status} ${res.statusText}`);
+  }
+
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Bybit returned non-JSON: ${text.slice(0, 100)}`);
+  }
+}
+
 export async function fetchKlines(
   symbol: string,
   interval: string = "60",
   limit: number = 200
 ): Promise<BybitCandle[]> {
-  const url = new URL("/v5/market/kline", BYBIT_BASE);
-  url.searchParams.set("category", "linear");
-  url.searchParams.set("symbol", symbol);
-  url.searchParams.set("interval", interval);
-  url.searchParams.set("limit", String(limit));
+  const json = await bybitFetch("/v5/market/kline", {
+    category: "linear",
+    symbol,
+    interval,
+    limit: String(limit),
+  });
 
-  const res = await fetch(url.toString(), { next: { revalidate: 60 } });
-  if (!res.ok) throw new Error(`Bybit API error: ${res.status}`);
-
-  const json = await res.json();
   if (json.retCode !== 0) throw new Error(`Bybit error: ${json.retMsg}`);
 
-  // Bybit returns: [timestamp, open, high, low, close, volume, turnover]
   return (json.result?.list || []).map((c: string[]) => ({
     timestamp: parseInt(c[0]),
     open: parseFloat(c[1]),
@@ -42,31 +60,18 @@ export async function fetchKlines(
   }));
 }
 
-export async function fetchTickers(): Promise<any[]> {
-  const url = new URL("/v5/market/tickers", BYBIT_BASE);
-  url.searchParams.set("category", "linear");
+export async function fetchFundingRate(symbol: string): Promise<number> {
+  const json = await bybitFetch("/v5/market/tickers", {
+    category: "linear",
+    symbol,
+  });
 
-  const res = await fetch(url.toString(), { next: { revalidate: 30 } });
-  if (!res.ok) throw new Error(`Bybit API error: ${res.status}`);
-
-  const json = await res.json();
   if (json.retCode !== 0) throw new Error(`Bybit error: ${json.retMsg}`);
 
-  return json.result?.list || [];
-}
-
-export async function fetchFundingRate(symbol: string): Promise<number> {
-  const url = new URL("/v5/market/tickers", BYBIT_BASE);
-  url.searchParams.set("category", "linear");
-  url.searchParams.set("symbol", symbol);
-
-  const res = await fetch(url.toString(), { next: { revalidate: 60 } });
-  const json = await res.json();
   const ticker = json.result?.list?.[0];
   return parseFloat(ticker?.fundingRate || "0");
 }
 
-// Popular perpetual pairs for the feed
 export const POPULAR_PAIRS = [
   "BTCUSDT",
   "ETHUSDT",
