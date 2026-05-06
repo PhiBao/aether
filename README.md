@@ -168,11 +168,11 @@ AETHER exposes all core functions via MCP, enabling AI assistants and agents to 
 
 ## Smart Contracts (Mantle Sepolia)
 
-| Contract | Address | Purpose |
-|----------|---------|---------|
-| **AgentRegistry** | `0x6792E51FBD24f9315282BD5b6c5E713dCc779C69` | ERC-8004 soulbound agent identity |
-| **SignalLogger** | `0xc6168fa5153E7AF6aFf0013D99A2B8D9670a1454` | Append-only signal log |
-| **StrategyVault** | `0xD4f72d31D66cA11Cdfd428cDc08B438D2681362B` | Collateral vault |
+| Contract | Address | Purpose | Verified |
+|----------|---------|---------|----------|
+| **AgentRegistry** | `0x6792E51FBD24f9315282BD5b6c5E713dCc779C69` | ERC-8004 soulbound agent identity | [✓](https://sepolia.mantlescan.xyz/address/0x6792E51FBD24f9315282BD5b6c5E713dCc779C69) |
+| **SignalLogger** | `0xc6168fa5153E7AF6aFf0013D99A2B8D9670a1454` | Append-only signal log | [✓](https://sepolia.mantlescan.xyz/address/0xc6168fa5153E7AF6aFf0013D99A2B8D9670a1454) |
+| **StrategyVault** | `0xD4f72d31D66cA11Cdfd428cDc08B438D2681362B` | Collateral vault | [✓](https://sepolia.mantlescan.xyz/address/0xD4f72d31D66cA11Cdfd428cDc08B438D2681362B) |
 
 ---
 
@@ -236,8 +236,9 @@ forge create --rpc-url $MANTLE_RPC --private-key $PK ...
 
 - [x] AI-powered function callable on-chain → `SignalLogger.logSignal()` logs every swarm decision
 - [x] Deployed on Mantle Network
-- [x] Contract verified on Mantle Explorer
-- [x] Open-source repo with comprehensive README
+- [x] All 3 contracts verified on Mantle Explorer
+- [x] Open-source repo with MIT License
+- [x] Frontend deployed to Vercel
 
 ---
 

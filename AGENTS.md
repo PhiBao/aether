@@ -129,13 +129,13 @@ Before every commit, verify:
 
 ---
 
-## Deployed Contracts (Mantle Sepolia)
+## Deployed Contracts (Mantle Sepolia) — ALL VERIFIED
 
-| Contract | Address | ABI |
-|----------|---------|-----|
-| **AgentRegistry** | `0x6792E51FBD24f9315282BD5b6c5E713dCc779C69` | ERC-8004 |
-| **SignalLogger** | `0xc6168fa5153E7AF6aFf0013D99A2B8D9670a1454` | Signal logging |
-| **StrategyVault** | `0xD4f72d31D66cA11Cdfd428cDc08B438D2681362B` | Collateral |
+| Contract | Address | ABI | Explorer |
+|----------|---------|-----|----------|
+| **AgentRegistry** | `0x6792E51FBD24f9315282BD5b6c5E713dCc779C69` | ERC-8004 | [Verified](https://sepolia.mantlescan.xyz/address/0x6792E51FBD24f9315282BD5b6c5E713dCc779C69) |
+| **SignalLogger** | `0xc6168fa5153E7AF6aFf0013D99A2B8D9670a1454` | Signal logging | [Verified](https://sepolia.mantlescan.xyz/address/0xc6168fa5153E7AF6aFf0013D99A2B8D9670a1454) |
+| **StrategyVault** | `0xD4f72d31D66cA11Cdfd428cDc08B438D2681362B` | Collateral | [Verified](https://sepolia.mantlescan.xyz/address/0xD4f72d31D66cA11Cdfd428cDc08B438D2681362B) |
 
 **Authorization:** StrategyVault is authorized as updater on both AgentRegistry and SignalLogger.
 
